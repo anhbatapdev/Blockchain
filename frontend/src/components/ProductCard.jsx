@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusBadge from './StatusBadge';
-import { formatAddress, formatTimestamp } from '../utils/helpers';
+import { formatAddress, formatTimestamp, formatProductId } from '../utils/helpers';
 import { FiPackage, FiArrowRight } from 'react-icons/fi';
 
 const ProductCard = ({ product, onClick }) => {
@@ -13,7 +13,7 @@ const ProductCard = ({ product, onClick }) => {
       <div className="flex items-start justify-between mb-3">
         <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
           <FiPackage className="w-3 h-3" />
-          #{product.id?.toString()}
+          #{formatProductId(product.id)}
         </span>
         <StatusBadge statusCode={product.status} size="sm" />
       </div>

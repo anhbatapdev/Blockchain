@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiPackage } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useWeb3 } from '../context/Web3Context';
-import { addProduct } from '../utils/contract';
+import { addProduct, parseProductAddedEvent } from '../utils/contract';
+import { formatProductId } from '../utils/helpers';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const AddProduct = () => {
@@ -34,7 +35,7 @@ const AddProduct = () => {
 
     setLoading(true);
     try {
-      const tx = await addProduct(
+      const receipt = await addProduct(
         contract,
         form.name,
         form.description,
@@ -44,25 +45,19 @@ const AddProduct = () => {
         form.details
       );
 
-      // Try to extract product ID from events
-      let productId;
-      if (tx && tx.events) {
-        const event = tx.events.ProductCreated || tx.events[0];
-        if (event && event.args) {
-          productId = event.args.productId?.toString() || event.args[0]?.toString();
-        }
-      }
+      // Extract product ID from the ProductAdded event (ethers v6)
+      const productId = parseProductAddedEvent(contract, receipt);
 
       toast.success(
         productId
-          ? `Thêm sản phẩm thành công! Mã SP: #${productId}`
+          ? `Thêm sản phẩm thành công! Mã SP: #${formatProductId(productId)}`
           : 'Thêm sản phẩm thành công!',
         { duration: 5000 }
       );
 
       if (productId) {
         const goTrack = window.confirm(
-          `Sản phẩm #${productId} đã được tạo. Bạn có muốn xem chi tiết?`
+          `Sản phẩm #${formatProductId(productId)} đã được tạo. Bạn có muốn xem chi tiết?`
         );
         if (goTrack) {
           navigate(`/track/${productId}`);

@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiSearch, FiPlus, FiList, FiShield, FiTruck, FiCheck } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiList, FiShield, FiTruck, FiCheck, FiCamera } from 'react-icons/fi';
+import QRScanner from '../components/QRScanner';
+import { formatProductId } from '../utils/helpers';
+import toast from 'react-hot-toast';
 
 const Home = () => {
   const [searchId, setSearchId] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
   const navigate = useNavigate();
 
   const handleSearch = (e) => {
@@ -91,7 +95,27 @@ const Home = () => {
               <FiSearch className="w-5 h-5" />
               Tra cứu
             </button>
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="w-full sm:w-auto px-8 py-4 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <FiCamera className="w-5 h-5" />
+              Quét QR
+            </button>
           </form>
+
+          {/* QR Scanner */}
+          {showScanner && (
+            <QRScanner
+              onScan={(productId) => {
+                setShowScanner(false);
+                toast.success(`Đã quét mã: #${formatProductId(productId)}`);
+                navigate(`/track/${productId}`);
+              }}
+              onClose={() => setShowScanner(false)}
+            />
+          )}
 
           {/* CTA */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

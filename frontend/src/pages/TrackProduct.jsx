@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FiSearch, FiCopy, FiCheck, FiRefreshCw, FiExternalLink, FiPackage } from 'react-icons/fi';
+import { FiSearch, FiCopy, FiCheck, FiRefreshCw, FiExternalLink, FiPackage, FiCamera } from 'react-icons/fi';
 import { QRCodeSVG } from 'qrcode.react';
 import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
 import { useWeb3 } from '../context/Web3Context';
 import { getProduct, getProductHistory, getAllProducts } from '../utils/contract';
-import { formatAddress, formatTimestamp } from '../utils/helpers';
+import { formatAddress, formatTimestamp, formatProductId, getQRCodeUrl } from '../utils/helpers';
 import StatusBadge from '../components/StatusBadge';
 import Timeline from '../components/Timeline';
 import LoadingSpinner from '../components/LoadingSpinner';
+import QRScanner from '../components/QRScanner';
 import contractAddressData from '../contracts/contract-address.json';
 import contractABI from '../contracts/SupplyChain.json';
 
@@ -29,6 +30,7 @@ const TrackProduct = () => {
   const [allProducts, setAllProducts] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
 
   // Tạo read-only contract (không cần MetaMask)
   const readOnlyContract = useMemo(() => {
@@ -64,7 +66,12 @@ const TrackProduct = () => {
         setHistory(hist || []);
       } catch (err) {
         console.error(err);
-        setError(err?.reason || err?.message || 'Lỗi khi tra cứu sản phẩm.');
+        const msg = err?.reason || err?.message || '';
+        if (msg.toLowerCase().includes('not exist') || msg.toLowerCase().includes('does not exist')) {
+          setError('Không tìm thấy thông tin sản phẩm. Vui lòng kiểm tra lại mã sản phẩm.');
+        } else {
+          setError('Không tìm thấy thông tin sản phẩm.');
+        }
       } finally {
         setLoading(false);
       }
@@ -144,12 +151,33 @@ const TrackProduct = () => {
               className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
             />
             <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="px-4 py-3 rounded-xl font-semibold bg-emerald-500 text-white shadow-md hover:bg-emerald-600 transition-all duration-200 flex items-center gap-2"
+              title="Quét mã QR"
+            >
+              <FiCamera className="w-5 h-5" />
+              <span className="hidden sm:inline">Quét QR</span>
+            </button>
+            <button
               type="submit"
               className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200"
             >
               Tra cứu
             </button>
           </form>
+
+          {/* QR Scanner Modal */}
+          {showScanner && (
+            <QRScanner
+              onScan={(productId) => {
+                setShowScanner(false);
+                toast.success(`Đã quét được mã sản phẩm: #${formatProductId(productId)}`);
+                navigate(`/track/${productId}`);
+              }}
+              onClose={() => setShowScanner(false)}
+            />
+          )}
         </div>
 
         {/* Danh sách sản phẩm - hiện khi chưa search */}
@@ -192,8 +220,8 @@ const TrackProduct = () => {
                     onClick={() => navigate(`/track/${p.id}`)}
                     className="w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-indigo-50 rounded-xl transition-all duration-200 text-left group border border-transparent hover:border-indigo-200"
                   >
-                    <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center font-bold text-sm shrink-0">
-                      #{p.id}
+                    <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center font-bold text-xs shrink-0">
+                      {formatProductId(p.id)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-gray-800 group-hover:text-indigo-700 truncate">{p.name}</p>
@@ -243,7 +271,7 @@ const TrackProduct = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">
-                        Mã SP: #{product.id?.toString()}
+                        Mã SP: #{formatProductId(product.id)}
                       </span>
                       <h2 className="text-2xl font-bold text-gray-900 mt-2">
                         {product.name}
@@ -293,7 +321,7 @@ const TrackProduct = () => {
                 {/* Right: QR */}
                 <div className="flex flex-col items-center justify-center bg-gray-50 rounded-2xl p-6 lg:w-48 shrink-0">
                   <QRCodeSVG
-                    value={`http://192.168.1.20:5174/track/${product.id}`}
+                    value={getQRCodeUrl(product.id)}
                     size={140}
                     level="M"
                     includeMargin

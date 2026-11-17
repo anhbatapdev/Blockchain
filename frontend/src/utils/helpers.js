@@ -47,3 +47,21 @@ export function getStatusColorClasses(statusCode) {
   };
   return colorMap[code] || 'bg-gray-100 text-gray-800';
 }
+
+// Format product ID thành mã 6 chữ số: 1 → "000001"
+export function formatProductId(id) {
+  return String(id).padStart(6, '0');
+}
+
+// Tạo URL cho QR code — luôn dùng IP LAN để điện thoại quét được
+export function getQRCodeUrl(productId) {
+  const hostname = window.location.hostname;
+  // Nếu đang truy cập qua localhost, dùng IP LAN từ env
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    const lanHost = import.meta.env.VITE_LAN_HOST || hostname;
+    const port = import.meta.env.VITE_PORT || window.location.port || '5174';
+    return `http://${lanHost}:${port}/track/${productId}`;
+  }
+  // Nếu đã truy cập qua IP thì dùng luôn
+  return `${window.location.origin}/track/${productId}`;
+}
